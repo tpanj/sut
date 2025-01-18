@@ -23,6 +23,6 @@ void SUTest::test ( const char * description, const int flag ) {
 }
 
 void SUTest::report() const {
-	printf("%s: pass: %ld, fail: %ld\n", _tstr, _pass_count, _fail_count);
+	printf("%s: pass: %ld, fail:%ld\n", _tstr, _pass_count, _fail_count);
 }
 

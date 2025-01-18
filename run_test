@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# Run test from cmake and rename executable according to exit status and regexp at andline defined to success
+
+FILE="$1"
+FILE_LEN=${#FILE}
+FILENAME_ONLY=$(basename "$1")
+OUT=$(dirname "$1")/Testing/Temporary/${FILENAME_ONLY}
+
+# Get the number of arguments
+num_args="$#"
+
+# Extract all arguments except the last one
+new_args="${@:1:$(($num_args-1))}"
+
+# Get the last argument
+last_arg="${@: -1}"
+
+# Update the positional parameters
+set -- "$new_args"
+
+# append arguments translated
+OUT+=$(echo "${new_args:FILE_LEN}" | tr ' /*''"|' '______')
+# append ending and extension
+OUT+='-out.txt'
+
+# Run the actual test command
+$new_args 2>&1 | tee "$OUT"
+
+EXIT=$?
+
+function rename_exe() {
+  echo # Leave only this part of function if do not want of renaming
+       # due to running multiple arguments testing
+  if [ $2 -eq 1 ]; then
+    mv "$1"{,🛑}
+  else
+    mv "$1"{,✅}
+  fi
+}
+
+delimiter=","
+# Split the last_arg into an end_resolution using IFS
+IFS="${delimiter}" read -ra end_resolution <<< "$last_arg"
+
+if [ $EXIT -eq 0 ]; then
+    if [ "${end_resolution[0]}" = "R" ]; then
+        GREP=${end_resolution[1]}
+        SUCCESS=$( tail -n1 $OUT | grep -iP $GREP | wc -l)
+        if [ $SUCCESS -eq 1 ]; then
+            # If successful, rename a file with checkmark at end
+            rename_exe "$FILE" 0
+            exit 0
+        else
+            # else rename with stop at end
+            rename_exe "$FILE" 1
+            exit 1
+        fi
+    else
+        # If successful exit, rename a file with checkmark at end
+        rename_exe "$FILE" 0
+    fi
+else
+    # else rename with stop at end
+    rename_exe "$FILE" 1
+fi
+exit $EXIT
